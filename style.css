@@ -132,7 +132,6 @@ canvas {
   background: #1a1d29;
   border-bottom: 1px solid #222;
   white-space: nowrap;
-  /* Scrollbar override */
   scrollbar-width: none;
 }
 
@@ -190,7 +189,7 @@ canvas {
   font-variation-settings: 'FILL' 1;
 }
 
-/* Range Inputs in toolbar */
+/* Range Inputs */
 .active-toolbar input[type="range"] {
   width: 60px;
   margin-top: 4px;
@@ -258,7 +257,6 @@ canvas {
 
 .premium-btn {
   color: #ffca28 !important;
-  /* Gold for premium feature */
 }
 
 .premium-btn:hover {
@@ -306,13 +304,12 @@ canvas {
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
 /* MOBILE RESPONSIVENESS */
 @media (max-width: 768px) {
+
   .editor-layout {
     flex-direction: column;
   }
@@ -324,20 +321,36 @@ canvas {
 
   .side-panel {
     width: 100%;
-    height: auto;
     max-height: 45vh;
     border-left: none;
     border-top: 1px solid #222;
     padding-bottom: 20px;
   }
 
-  .toolbar {
-    overflow-x: auto;
+  /* FIXED: toolbar was wrong class */
+  .active-toolbar {
     justify-content: flex-start;
-    padding-bottom: 20px;
+    overflow-x: auto;
+    padding-bottom: 12px;
   }
 
-  .toolbar::-webkit-scrollbar {
+  .active-toolbar::-webkit-scrollbar {
     display: none;
+  }
+}
+
+/* Extra small devices */
+@media (max-width: 480px) {
+  .topbar h1 {
+    font-size: 16px;
+  }
+
+  .upload-btn {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+
+  .side-panel {
+    max-height: 50vh;
   }
 }
