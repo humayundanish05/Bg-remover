@@ -15,10 +15,17 @@ let bgOffsetX = 0;
 let bgOffsetY = 0;
 
 // Filter state
-let brightness = 0;
-let contrast = 0;
-let saturation = 0;
-let tintColor = null; // rgba string for tint overlay
+let adjBrightness = 0;
+let adjContrast = 0;
+let adjSaturation = 0;
+let adjExposure = 0;
+let adjShadows = 0;
+let adjHighlights = 0;
+let adjTemp = 0;
+let adjTint = 0;
+let adjVibrance = 0;
+let adjClarity = 0;
+let tintColor = null; // from presets
 
 // Image state
 let originalImg = null;      // ImageBitmap
@@ -62,23 +69,41 @@ const beforeImg = document.getElementById('beforeImg');
 const afterImg = document.getElementById('afterImg');
 const sliderHandle = document.getElementById('sliderHandle');
 
-// toolbar
+// New Category & Tool DOM
+const toolsAdjust = document.getElementById('tools-adjust');
+const toolsEdit = document.getElementById('tools-edit');
+const toolsEnhance = document.getElementById('tools-enhance');
+const toolsCreative = document.getElementById('tools-creative');
+const navBtns = document.querySelectorAll('.nav-btn');
+
+// Adjust Inputs
+const inpBrightness = document.getElementById('adjBrightness');
+const inpContrast = document.getElementById('adjContrast');
+const inpSaturation = document.getElementById('adjSaturation');
+const inpExposure = document.getElementById('adjExposure');
+const inpShadows = document.getElementById('adjShadows');
+const inpHighlights = document.getElementById('adjHighlights');
+const inpTemp = document.getElementById('adjTemp');
+const inpTint = document.getElementById('adjTint');
+const inpVibrance = document.getElementById('adjVibrance');
+const inpClarity = document.getElementById('adjClarity');
+
+// Tools
 const toolCrop = document.getElementById('toolCrop');
 const toolRotate = document.getElementById('toolRotate');
 const toolFlip = document.getElementById('toolFlip');
+const toolMove = document.getElementById('toolMove'); // New
 const toolBrush = document.getElementById('toolBrush');
 const toolMagicEraser = document.getElementById('toolMagicEraser');
+const toolUnblur = document.getElementById('toolUnblur'); // New
+const btnRemoveBg = document.getElementById('btnRemoveBg'); // Manual
+
 const zoomInBtn = document.getElementById('zoomIn');
 const zoomOutBtn = document.getElementById('zoomOut');
 const panTool = document.getElementById('panTool');
-const brightnessSlider = document.getElementById('brightness');
-const contrastSlider = document.getElementById('contrast');
-const saturationSlider = document.getElementById('saturation');
+
 const undoBtn = document.getElementById('undoBtn');
 const redoBtn = document.getElementById('redoBtn');
-const layersToggle = document.getElementById('layersToggle'); // Might be missing in HTML, check existence before use
-const resetBtn = document.getElementById('resetBtn'); // Might be missing in HTML
-const saveBtn = document.getElementById('saveBtn'); // Might be missing in HTML
 
 // bg adjust sliders
 const bgZoom = document.getElementById('bgZoom');
@@ -153,10 +178,46 @@ function getCanvasPointerPos(e) {
 }
 
 function makeFilterString() {
-  const b = 1 + (brightness / 100);
-  const c = 1 + (contrast / 100);
-  const s = 1 + (saturation / 100);
-  return `brightness(${b}) contrast(${c}) saturate(${s})`;
+  // Combine all adjustments
+  // CSS filter string approximations:
+  // Brightness: brightness(1 + val) + Exposure (adds more)
+  // Contrast: contrast(1 + val) + Clarity (adds more)
+  // Saturation: saturate(1 + val) + Vibrance (adds more)
+  // Temp: sepia + hue-rotate (warmth) or blue overlay (coolness)? 
+  //   - Simple approach: use sepia for warmth, hue-rotate for shifting.
+
+  // Normalized values (-1 to 1 range approx)
+  const b = 1 + (adjBrightness / 100) + (adjExposure / 100);
+  const c = 1 + (adjContrast / 100) + (adjClarity / 300); // Clarity affects contrast subtly
+  const s = 1 + (adjSaturation / 100) + (adjVibrance / 200); // Vibrance is weaker saturation
+
+  // Temp/Tint (Hue/Sepia)
+  // Temp > 0 => Warm (Sepia), Temp < 0 => Cool (Blue tint? or just adjust hue?)
+  // Hue rotate is tricky.
+  // Let's stick to B/C/S/Sepia/Hue for standard CSS filters.
+
+  // Shadows/Highlights/Tint/Temp often better done via Overlay colors (like presets) if CSS filter is limited.
+  // But we have makeFilterString return a CSS string for `ctx.filter`.
+
+  let filterStr = `brightness(${Math.max(0, b)}) contrast(${Math.max(0, c)}) saturate(${Math.max(0, s)})`;
+
+  // Temp approximation via Sepia (Warmth)
+  if (adjTemp > 0) {
+    filterStr += ` sepia(${adjTemp / 200})`;
+  } else if (adjTemp < 0) {
+    // Coolness is hard with just CSS filters on Canvas without color-matrix.
+    // We'll rely on our overlay "Tint" system for 'Temperature' manual override if we can,
+    // OR we just accept Sepia only warms.
+    // Actually, hue-rotate can shift slightly?
+    filterStr += ` hue-rotate(${adjTemp / 5}deg)`;
+  }
+
+  // Tint (Green/Magenta shift) -> Hue Rotate
+  if (adjTint !== 0) {
+    filterStr += ` hue-rotate(${adjTint}deg)`;
+  }
+
+  return filterStr;
 }
 
 // ---------- Model init ----------
@@ -318,14 +379,22 @@ fileInput?.addEventListener('change', async (ev) => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(originalImg, 0, 0);
 
+    // Auto BG removal REMOVED. Now manual.
+    // Just display original.
+    // Set removedBG to original initially so we can edit/crop even without removing BG
+    removedBG = document.createElement('canvas');
+    removedBG.width = canvas.width; removedBG.height = canvas.height;
+    removedBG.getContext('2d').drawImage(originalImg, 0, 0);
+
     if (bgControls) bgControls.classList.remove('hidden');
     if (downloadBtn) downloadBtn.disabled = true;
     if (clearBtn) clearBtn.disabled = true;
 
-    const threshold = magicStrict ? 0.6 : 0.35;
-    await removeBackground(threshold);
-
     if (downloadBtn) downloadBtn.disabled = false;
+    if (clearBtn) clearBtn.disabled = false;
+
+    // Activate Adjust tab by default
+    switchCategory('tools-adjust');
     if (clearBtn) clearBtn.disabled = false;
 
     history.length = 0; historyIndex = -1; // reset history for new file
@@ -440,8 +509,55 @@ function setActiveTool(name) {
     case 'pan':
       canvas.style.cursor = 'grab';
       break;
+    case 'move':
+      canvas.style.cursor = 'move';
+      break;
+  }
+
+  // Update UI active state
+  document.querySelectorAll('.active-tool').forEach(b => b.classList.remove('active-tool'));
+  // Find button with id 'tool'+CapitalizedName
+  if (name) {
+    const btn = document.getElementById('tool' + name.charAt(0).toUpperCase() + name.slice(1));
+    if (btn) btn.classList.add('active-tool');
   }
 }
+
+// -------- Category Switch Logic --------
+function switchCategory(targetId) {
+  // Hide all
+  const toolbars = document.querySelectorAll('.active-toolbar');
+  toolbars.forEach(tb => tb.classList.add('hidden'));
+
+  // Show target
+  const target = document.getElementById(targetId);
+  if (target) target.classList.remove('hidden');
+
+  // Update Nav Active State
+  navBtns.forEach(btn => {
+    btn.classList.remove('active-cat');
+    if (btn.dataset.target === targetId) btn.classList.add('active-cat');
+  });
+}
+
+// Nav Click Events
+navBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    switchCategory(btn.dataset.target);
+  });
+});
+
+// -------- Manual BG Removal --------
+btnRemoveBg?.addEventListener('click', async () => {
+  if (!originalImg) return;
+  // Visual feedback
+  btnRemoveBg.innerHTML = '<span class="icon">⏳</span><br>Removing...';
+  await removeBackground(0.6);
+  btnRemoveBg.innerHTML = '<span class="icon">🪄</span><br>BG Remover';
+});
+
+// -------- Move Tool --------
+toolMove?.addEventListener('click', () => setActiveTool(activeTool === 'move' ? null : 'move'));
 
 // -------- Crop Tool --------
 toolCrop?.addEventListener('click', () => {
@@ -492,20 +608,39 @@ panTool?.addEventListener('click', () => {
 });
 
 // -------- Adjustments --------
-brightnessSlider?.addEventListener('input', () => {
-  brightness = +brightnessSlider.value;
-  renderFinal();
-});
+function bindSlider(elem, varName) {
+  if (!elem) return;
+  elem.addEventListener('input', () => {
+    // Update global var dynamically
+    // eval(`${varName} = +elem.value`); // Avoid eval.
+    // Use switch or object map.
+    const val = +elem.value;
+    switch (varName) {
+      case 'adjBrightness': adjBrightness = val; break;
+      case 'adjContrast': adjContrast = val; break;
+      case 'adjSaturation': adjSaturation = val; break;
+      case 'adjExposure': adjExposure = val; break;
+      case 'adjShadows': adjShadows = val; break;
+      case 'adjHighlights': adjHighlights = val; break;
+      case 'adjTemp': adjTemp = val; break;
+      case 'adjTint': adjTint = val; break;
+      case 'adjVibrance': adjVibrance = val; break;
+      case 'adjClarity': adjClarity = val; break;
+    }
+    renderFinal();
+  });
+}
 
-contrastSlider?.addEventListener('input', () => {
-  contrast = +contrastSlider.value;
-  renderFinal();
-});
-
-saturationSlider?.addEventListener('input', () => {
-  saturation = +saturationSlider.value;
-  renderFinal();
-});
+bindSlider(inpBrightness, 'adjBrightness');
+bindSlider(inpContrast, 'adjContrast');
+bindSlider(inpSaturation, 'adjSaturation');
+bindSlider(inpExposure, 'adjExposure');
+bindSlider(inpShadows, 'adjShadows');
+bindSlider(inpHighlights, 'adjHighlights');
+bindSlider(inpTemp, 'adjTemp');
+bindSlider(inpTint, 'adjTint');
+bindSlider(inpVibrance, 'adjVibrance');
+bindSlider(inpClarity, 'adjClarity');
 
 // -------- Undo / Redo --------
 undoBtn?.addEventListener('click', () => {
@@ -546,15 +681,21 @@ if (resetBtn) {
     bgOffsetX = 0;
     bgOffsetY = 0;
 
-    brightness = 0; contrast = 0; saturation = 0;
-    if (brightnessSlider) brightnessSlider.value = 0;
-    if (contrastSlider) contrastSlider.value = 0;
-    if (saturationSlider) saturationSlider.value = 0;
+    adjBrightness = 0; adjContrast = 0; adjSaturation = 0;
+    adjExposure = 0; adjShadows = 0; adjHighlights = 0;
+    adjTemp = 0; adjTint = 0; adjVibrance = 0; adjClarity = 0;
+
+    // Reset inputs
+    document.querySelectorAll('.active-toolbar input[type="range"]').forEach(i => i.value = 0);
 
     tintColor = null;
 
-    magicStrict = true;
-    await removeBackground(0.6);
+    // Reset removedBG to original (undo BG removal)
+    removedBG = document.createElement('canvas');
+    removedBG.width = canvas.width; removedBG.height = canvas.height;
+    removedBG.getContext('2d').drawImage(originalImg, 0, 0);
+
+    renderFinal();
     pushHistory('reset');
   });
 }
@@ -634,8 +775,8 @@ canvas?.addEventListener('pointermove', e => {
     handleBrushStroke(finalX, finalY);
   }
 
-  // Pan
-  if (activeTool === 'pan' && isDrawing) {
+  // Pan or Move
+  if ((activeTool === 'pan' || activeTool === 'move') && isDrawing) {
     const dx = e.clientX - panStart.x;
     const dy = e.clientY - panStart.y;
     panStart = { x: e.clientX, y: e.clientY };
@@ -658,6 +799,12 @@ canvas?.addEventListener('pointerup', () => {
 
   if (activeTool === 'brush' && isDrawing) {
     pushHistory('brush');
+  }
+
+  // Move/Pan end
+  if ((activeTool === 'pan' || activeTool === 'move') && isDrawing) {
+    if (activeTool === 'pan') canvas.style.cursor = 'grab';
+    if (activeTool === 'move') canvas.style.cursor = 'move';
   }
 
   isDrawing = false;
@@ -688,47 +835,47 @@ function applyPreset(name) {
 
   switch (name) {
     case 'moody': // Low brightness, high contrast, low sat, teal tint
-      brightness = -10;
-      contrast = 20;
-      saturation = -20;
+      adjBrightness = -10;
+      adjContrast = 20;
+      adjSaturation = -20;
       tintColor = 'rgba(0, 40, 60, 0.4)';
       break;
     case 'cinematic': // High contrast, low sat, teal/blue tint
-      brightness = 0;
-      contrast = 15;
-      saturation = -10;
+      adjBrightness = 0;
+      adjContrast = 15;
+      adjSaturation = -10;
       tintColor = 'rgba(0, 100, 150, 0.25)';
       break;
     case 'vintage': // Low contrast, warm yellow tint
-      brightness = 5;
-      contrast = -10;
-      saturation = -20;
+      adjBrightness = 5;
+      adjContrast = -10;
+      adjSaturation = -20;
       tintColor = 'rgba(220, 180, 50, 0.3)';
       break;
     case 'warm': // Bright, contrast, warm orange tint
-      brightness = 5;
-      contrast = 5;
-      saturation = 10;
+      adjBrightness = 5;
+      adjContrast = 5;
+      adjSaturation = 10;
       tintColor = 'rgba(255, 140, 0, 0.2)';
       break;
     case 'cool': // Contrast, low sat, blue tint
-      brightness = 0;
-      contrast = 10;
-      saturation = -10;
+      adjBrightness = 0;
+      adjContrast = 10;
+      adjSaturation = -10;
       tintColor = 'rgba(0, 180, 255, 0.2)';
       break;
     case 'bw': // B&W, high contrast
-      brightness = 0;
-      contrast = 20;
-      saturation = -100;
+      adjBrightness = 0;
+      adjContrast = 20;
+      adjSaturation = -100;
       tintColor = null;
       break;
   }
 
   // Update UI sliders
-  if (brightnessSlider) brightnessSlider.value = brightness;
-  if (contrastSlider) contrastSlider.value = contrast;
-  if (saturationSlider) saturationSlider.value = saturation;
+  if (inpBrightness) inpBrightness.value = adjBrightness;
+  if (inpContrast) inpContrast.value = adjContrast;
+  if (inpSaturation) inpSaturation.value = adjSaturation;
 
   renderFinal();
   pushHistory('preset-' + name);
