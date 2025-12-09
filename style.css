@@ -137,6 +137,14 @@ canvas {
   background: #4f7cff;
 }
 
+.presets-group {
+  display: flex;
+  gap: 6px;
+  padding-left: 10px;
+  border-left: 1px solid #333;
+  margin-left: 4px;
+}
+
 /* SLIDERS */
 .sliders {
   display: flex;
