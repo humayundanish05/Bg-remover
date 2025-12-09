@@ -18,6 +18,7 @@ let bgOffsetY = 0;
 let brightness = 0;
 let contrast = 0;
 let saturation = 0;
+let tintColor = null; // rgba string for tint overlay
 
 // Image state
 let originalImg = null;      // ImageBitmap
@@ -83,6 +84,14 @@ const saveBtn = document.getElementById('saveBtn'); // Might be missing in HTML
 const bgZoom = document.getElementById('bgZoom');
 const bgPosX = document.getElementById('bgPosX');
 const bgPosY = document.getElementById('bgPosY');
+
+// Presets
+const presetMoody = document.getElementById('presetMoody');
+const presetCinematic = document.getElementById('presetCinematic');
+const presetVintage = document.getElementById('presetVintage');
+const presetWarm = document.getElementById('presetWarm');
+const presetCool = document.getElementById('presetCool');
+const presetBW = document.getElementById('presetBW');
 
 // ---------- Constants ----------
 const MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite';
@@ -244,6 +253,15 @@ function renderFinal() {
 
   // foreground
   ctx.drawImage(removedBG, 0, 0);
+
+  // Apply Tint (if any) clipped to foreground
+  if (tintColor) {
+    ctx.globalCompositeOperation = 'source-atop';
+    ctx.fillStyle = tintColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Reset composite operation
+    ctx.globalCompositeOperation = 'source-over';
+  }
 
   ctx.filter = 'none';
   ctx.restore();
@@ -533,6 +551,8 @@ if (resetBtn) {
     if (contrastSlider) contrastSlider.value = 0;
     if (saturationSlider) saturationSlider.value = 0;
 
+    tintColor = null;
+
     magicStrict = true;
     await removeBackground(0.6);
     pushHistory('reset');
@@ -660,6 +680,67 @@ canvas?.addEventListener('wheel', e => {
     brushSize = Math.max(4, brushSize + (e.deltaY > 0 ? -4 : 4));
   }
 });
+
+// ---------- Presets Logic ----------
+function applyPreset(name) {
+  // Reset basics first (optional, but presets usually override current state)
+  // Or should they be additive? Usually presets set a baseline.
+
+  switch (name) {
+    case 'moody': // Low brightness, high contrast, low sat, teal tint
+      brightness = -10;
+      contrast = 20;
+      saturation = -20;
+      tintColor = 'rgba(0, 40, 60, 0.4)';
+      break;
+    case 'cinematic': // High contrast, low sat, teal/blue tint
+      brightness = 0;
+      contrast = 15;
+      saturation = -10;
+      tintColor = 'rgba(0, 100, 150, 0.25)';
+      break;
+    case 'vintage': // Low contrast, warm yellow tint
+      brightness = 5;
+      contrast = -10;
+      saturation = -20;
+      tintColor = 'rgba(220, 180, 50, 0.3)';
+      break;
+    case 'warm': // Bright, contrast, warm orange tint
+      brightness = 5;
+      contrast = 5;
+      saturation = 10;
+      tintColor = 'rgba(255, 140, 0, 0.2)';
+      break;
+    case 'cool': // Contrast, low sat, blue tint
+      brightness = 0;
+      contrast = 10;
+      saturation = -10;
+      tintColor = 'rgba(0, 180, 255, 0.2)';
+      break;
+    case 'bw': // B&W, high contrast
+      brightness = 0;
+      contrast = 20;
+      saturation = -100;
+      tintColor = null;
+      break;
+  }
+
+  // Update UI sliders
+  if (brightnessSlider) brightnessSlider.value = brightness;
+  if (contrastSlider) contrastSlider.value = contrast;
+  if (saturationSlider) saturationSlider.value = saturation;
+
+  renderFinal();
+  pushHistory('preset-' + name);
+}
+
+presetMoody?.addEventListener('click', () => applyPreset('moody'));
+presetCinematic?.addEventListener('click', () => applyPreset('cinematic'));
+presetVintage?.addEventListener('click', () => applyPreset('vintage'));
+presetWarm?.addEventListener('click', () => applyPreset('warm'));
+presetCool?.addEventListener('click', () => applyPreset('cool'));
+presetBW?.addEventListener('click', () => applyPreset('bw'));
+
 
 // ---------- performCrop ----------
 function performCrop(x, y, w, h) {
