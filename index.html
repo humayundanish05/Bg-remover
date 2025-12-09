@@ -66,35 +66,50 @@
     </div>
 
     <!-- BOTTOM TOOLBAR -->
-    <footer class="toolbar">
+    <!-- BOTTOM TOOLBAR AREA -->
+    <div class="bottom-area">
 
-      <button id="toolCrop">Crop</button>
-      <button id="toolRotate">Rotate</button>
-      <button id="toolFlip">Flip</button>
-
-      <button id="toolBrush">Brush</button>
-      <button id="toolMagicEraser">Magic Eraser</button>
-
-      <button id="zoomIn">＋</button>
-      <button id="zoomOut">－</button>
-      <button id="panTool">Pan</button>
-
-      <div class="sliders">
-        <label>B
-          <input type="range" id="brightness" min="-100" max="100" value="0">
-        </label>
-        <label>C
-          <input type="range" id="contrast" min="-100" max="100" value="0">
-        </label>
-        <label>S
-          <input type="range" id="saturation" min="-100" max="100" value="0">
-        </label>
+      <!-- Sub-Toolbars (Hidden by default, active one shown) -->
+      <div id="tools-adjust" class="active-toolbar hidden">
+        <label title="Brightness"><span class="icon">☀</span><br>Bright<input type="range" id="adjBrightness" min="-100"
+            max="100" value="0"></label>
+        <label title="Contrast"><span class="icon">◐</span><br>Contrast<input type="range" id="adjContrast" min="-100"
+            max="100" value="0"></label>
+        <label title="Saturation"><span class="icon">🌈</span><br>Satur<input type="range" id="adjSaturation" min="-100"
+            max="100" value="0"></label>
+        <label title="Exposure"><span class="icon">🔆</span><br>Expos<input type="range" id="adjExposure" min="-100"
+            max="100" value="0"></label>
+        <label title="Shadows"><span class="icon">🌑</span><br>Shadow<input type="range" id="adjShadows" min="-100"
+            max="100" value="0"></label>
+        <label title="Highlights"><span class="icon">✨</span><br>Highl<input type="range" id="adjHighlights" min="-100"
+            max="100" value="0"></label>
+        <label title="Temperature"><span class="icon">🌡</span><br>Temp<input type="range" id="adjTemp" min="-100"
+            max="100" value="0"></label>
+        <label title="Tint"><span class="icon">🎨</span><br>Tint<input type="range" id="adjTint" min="-100" max="100"
+            value="0"></label>
+        <!-- Approximations for advanced tools -->
+        <label title="Vibrance"><span class="icon">🦋</span><br>Vibra<input type="range" id="adjVibrance" min="-100"
+            max="100" value="0"></label>
+        <label title="Clarity"><span class="icon">👓</span><br>Clarity<input type="range" id="adjClarity" min="-100"
+            max="100" value="0"></label>
       </div>
 
-      <button id="undoBtn">Undo</button>
-      <button id="redoBtn">Redo</button>
+      <div id="tools-edit" class="active-toolbar hidden">
+        <button id="toolCrop"><span class="icon">✂</span><br>Crop</button>
+        <button id="toolMove"><span class="icon">✋</span><br>Move</button>
+        <button id="toolRotate"><span class="icon">↻</span><br>Rotate</button>
+        <button id="toolFlip"><span class="icon">↔</span><br>Flip</button>
+      </div>
 
-      <div class="presets-group">
+      <div id="tools-enhance" class="active-toolbar hidden">
+        <button id="btnRemoveBg" class="premium-btn"><span class="icon">🪄</span><br>BG Remover</button>
+        <button id="toolMagicEraser"><span class="icon">🧼</span><br>Magic Eraser</button>
+        <button id="toolUnblur"><span class="icon">💧</span><br>Unblur</button>
+      </div>
+
+      <div id="tools-creative" class="active-toolbar hidden">
+        <button id="toolBrush"><span class="icon">🖌</span><br>Brush</button>
+        <!-- Presets inside creative -->
         <button id="presetMoody">🎨 Moody</button>
         <button id="presetCinematic">🎥 Cinematic</button>
         <button id="presetVintage">📷 Vintage</button>
@@ -103,7 +118,32 @@
         <button id="presetBW">⚫ B&W</button>
       </div>
 
-    </footer>
+      <!-- Main Category Nav -->
+      <nav class="category-nav">
+        <button class="nav-btn" data-target="tools-adjust">
+          <span class="icon">🎛</span>
+          <span>Adjust</span>
+        </button>
+        <button class="nav-btn" data-target="tools-edit">
+          <span class="icon">📐</span>
+          <span>Edit</span>
+        </button>
+        <button class="nav-btn" data-target="tools-enhance">
+          <span class="icon">✨</span>
+          <span>Enhance</span>
+        </button>
+        <button class="nav-btn" data-target="tools-creative">
+          <span class="icon">🎨</span>
+          <span>Creative</span>
+        </button>
+
+        <div class="nav-divider"></div>
+
+        <button id="undoBtn" class="sm-btn">↩</button>
+        <button id="redoBtn" class="sm-btn">↪</button>
+      </nav>
+
+    </div>
 
   </div>
 
