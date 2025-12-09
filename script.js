@@ -1,6 +1,12 @@
 // script.js - cleaned & fixed version
 import { ImageSegmenter, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
 
+window.onerror = function (msg, url, line, col, error) {
+  alert("Error: " + msg + "\nLine: " + line);
+  console.error(error);
+  return false;
+};
+
 // ===== EDITOR STATE =====
 // Transform state
 let canvasScale = 1;
@@ -525,155 +531,128 @@ function setActiveTool(name) {
 
 // -------- Category Switch Logic --------
 function switchCategory(targetId) {
-  // Hide all
-  const toolbars = document.querySelectorAll('.active-toolbar');
-  toolbars.forEach(tb => tb.classList.add('hidden'));
+  try {
+    const toolbars = document.querySelectorAll('.active-toolbar');
+    toolbars.forEach(tb => tb.classList.add('hidden'));
 
-  // Show target
-  const target = document.getElementById(targetId);
-  if (target) target.classList.remove('hidden');
-
-  // Update Nav Active State
-  navBtns.forEach(btn => {
-    btn.classList.remove('active-cat');
-    if (btn.dataset.target === targetId) btn.classList.add('active-cat');
-  });
-}
-
-// Nav Click Events
-navBtns.forEach(btn => {
-  btn.addEventListener('click', () => {
-    switchCategory(btn.dataset.target);
-  });
-});
-
-// -------- Manual BG Removal --------
-btnRemoveBg?.addEventListener('click', async () => {
-  if (!originalImg) return;
-  btnRemoveBg.innerHTML = '<span class="material-symbols-outlined">hourglass_top</span><br>...';
-  await removeBackground(0.6);
-  btnRemoveBg.innerHTML = '<span class="material-symbols-outlined">auto_fix_high</span><br>BG Remover';
-});
-
-// -------- Unblur Tool (Simulated) --------
-toolUnblur?.addEventListener('click', () => {
-  if (!originalImg) return;
-  // Simulate unblur by boosting sharpness/contrast slightly
-  adjContrast += 10;
-  adjClarity += 20;
-  if (inpContrast) inpContrast.value = adjContrast;
-  if (inpClarity) inpClarity.value = adjClarity;
-  renderFinal();
-  alert('Enhancement applied!');
-});
-
-// -------- Magic Eraser (Brush Erase) --------
-toolMagicEraser?.addEventListener('click', () => {
-  // Switch to brush mode, erase
-  brushMode = 'erase';
-  setActiveTool('brush'); // Share brush cursor logic
-  // Visually activate magic eraser button instead of brush button
-  document.querySelectorAll('.active-tool').forEach(b => b.classList.remove('active-tool'));
-  toolMagicEraser.classList.add('active-tool');
-});
-
-// -------- Brush Tool (Paint) --------
-toolBrush?.addEventListener('click', () => {
-  brushMode = 'restore'; // Paint? or White?
-  // User asked for "Brush / Paint - allows drawing/painting".
-  // For now let's make it simple black/white or just 'restore' doesn't make sense if we don't have alpha mask to restore.
-  // Let's make it a simple white brush for now or a color brush.
-  // Given "Creative", a color brush is best.
-  // Standard ctx.strokeStyle... but handleBrushStroke uses fill.
-  brushMode = 'paint';
-  setActiveTool('brush');
-});
-
-// -------- Move Tool --------
-toolMove?.addEventListener('click', () => setActiveTool(activeTool === 'move' ? null : 'move'));
-
-// -------- Crop Tool --------
-toolCrop?.addEventListener('click', () => {
-  setActiveTool(activeTool === 'crop' ? null : 'crop');
-});
-
-// -------- Rotate --------
-toolRotate?.addEventListener('click', () => {
-  rotation = (rotation + 90) % 360;
-  renderFinal();
-  pushHistory('rotate');
-});
-
-// -------- Flip Horizontal --------
-toolFlip?.addEventListener('click', () => {
-  isFlipped = !isFlipped;
-  renderFinal();
-  pushHistory('flip');
-});
-
-// -------- Brush Tool --------
-toolBrush?.addEventListener('click', () => {
-  brushMode = 'erase';
-  setActiveTool(activeTool === 'brush' ? null : 'brush');
-});
-
-// -------- Magic Eraser (AI re-mask) --------
-toolMagicEraser?.addEventListener('click', async () => {
-  magicStrict = !magicStrict;
-  await removeBackground(magicStrict ? 0.6 : 0.35);
-  pushHistory('magic-eraser');
-});
-
-// -------- Zoom --------
-zoomInBtn?.addEventListener('click', () => {
-  canvasScale = Math.min(4, canvasScale + 0.1);
-  renderFinal();
-});
-
-zoomOutBtn?.addEventListener('click', () => {
-  canvasScale = Math.max(0.2, canvasScale - 0.1);
-  renderFinal();
-});
-
-// -------- Pan Tool --------
-panTool?.addEventListener('click', () => {
-  setActiveTool(activeTool === 'pan' ? null : 'pan');
-});
-
-// -------- Adjustments --------
-function bindSlider(elem, varName) {
-  if (!elem) return;
-  elem.addEventListener('input', () => {
-    // Update global var dynamically
-    // eval(`${varName} = +elem.value`); // Avoid eval.
-    // Use switch or object map.
-    const val = +elem.value;
-    switch (varName) {
-      case 'adjBrightness': adjBrightness = val; break;
-      case 'adjContrast': adjContrast = val; break;
-      case 'adjSaturation': adjSaturation = val; break;
-      case 'adjExposure': adjExposure = val; break;
-      case 'adjShadows': adjShadows = val; break;
-      case 'adjHighlights': adjHighlights = val; break;
-      case 'adjTemp': adjTemp = val; break;
-      case 'adjTint': adjTint = val; break;
-      case 'adjVibrance': adjVibrance = val; break;
-      case 'adjClarity': adjClarity = val; break;
+    const target = document.getElementById(targetId);
+    if (target) {
+      target.classList.remove('hidden');
+    } else {
+      console.warn('Target toolbar not found:', targetId);
     }
-    renderFinal();
+
+    // Update Nav Active State
+    const navBtns = document.querySelectorAll('.nav-btn');
+    navBtns.forEach(btn => {
+      btn.classList.remove('active-cat');
+      if (btn.dataset.target === targetId) btn.classList.add('active-cat');
+    });
+  } catch (e) {
+    console.error('switchCategory error:', e);
+  }
+}
+
+// Check if DOM is ready, though module should be fine
+{
+  const navContainer = document.querySelector('.category-nav');
+  if (navContainer) {
+    navContainer.addEventListener('click', (e) => {
+      const btn = e.target.closest('.nav-btn');
+      if (btn && btn.dataset.target) {
+        switchCategory(btn.dataset.target);
+      }
+    });
+  } else {
+    console.error('Category Nav container not found!');
+  }
+}
+
+// -------- Tools Logic --------
+
+// Manual BG Removal
+if (btnRemoveBg) {
+  btnRemoveBg.addEventListener('click', async () => {
+    if (!originalImg) { alert('Please upload an image first.'); return; }
+    btnRemoveBg.innerHTML = '<span class="material-symbols-outlined">hourglass_top</span><br>...';
+    try {
+      await removeBackground(0.6);
+      btnRemoveBg.innerHTML = '<span class="material-symbols-outlined">auto_fix_high</span><br>BG Remover';
+    } catch (e) {
+      alert('BG Removal failed: ' + e);
+      btnRemoveBg.innerHTML = '<span class="material-symbols-outlined">error</span><br>Error';
+    }
   });
 }
 
-bindSlider(inpBrightness, 'adjBrightness');
-bindSlider(inpContrast, 'adjContrast');
-bindSlider(inpSaturation, 'adjSaturation');
-bindSlider(inpExposure, 'adjExposure');
-bindSlider(inpShadows, 'adjShadows');
-bindSlider(inpHighlights, 'adjHighlights');
-bindSlider(inpTemp, 'adjTemp');
-bindSlider(inpTint, 'adjTint');
-bindSlider(inpVibrance, 'adjVibrance');
-bindSlider(inpClarity, 'adjClarity');
+// Unblur
+if (toolUnblur) {
+  toolUnblur.addEventListener('click', () => {
+    if (!originalImg) return;
+    adjContrast += 10;
+    adjClarity += 20;
+    if (inpContrast) inpContrast.value = adjContrast;
+    if (inpClarity) inpClarity.value = adjClarity;
+    renderFinal();
+    // alert('Enhancement applied!'); // Removed annoying alert
+  });
+}
+
+// Magic Eraser
+if (toolMagicEraser) {
+  toolMagicEraser.addEventListener('click', () => {
+    brushMode = 'erase';
+    setActiveTool('brush');
+    document.querySelectorAll('.active-tool').forEach(b => b.classList.remove('active-tool'));
+    toolMagicEraser.classList.add('active-tool');
+  });
+}
+
+// Brush
+if (toolBrush) {
+  toolBrush.addEventListener('click', () => {
+    brushMode = 'paint';
+    setActiveTool('brush');
+  });
+}
+
+// Edit Tools
+if (toolMove) toolMove.addEventListener('click', () => setActiveTool(activeTool === 'move' ? null : 'move'));
+if (toolCrop) toolCrop.addEventListener('click', () => setActiveTool(activeTool === 'crop' ? null : 'crop'));
+
+if (toolRotate) toolRotate.addEventListener('click', () => { rotation = (rotation + 90) % 360; renderFinal(); pushHistory('rotate'); });
+if (toolFlip) toolFlip.addEventListener('click', () => { isFlipped = !isFlipped; renderFinal(); pushHistory('flip'); });
+
+// Zoom / Pan
+if (zoomInBtn) zoomInBtn.addEventListener('click', () => { canvasScale = Math.min(4, canvasScale + 0.1); renderFinal(); });
+if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => { canvasScale = Math.max(0.2, canvasScale - 0.1); renderFinal(); });
+if (panTool) panTool.addEventListener('click', () => setActiveTool(activeTool === 'pan' ? null : 'pan'));
+
+// -------- Adjustments Sliders Using Delegation --------
+const adjustToolbar = document.getElementById('tools-adjust');
+if (adjustToolbar) {
+  adjustToolbar.addEventListener('input', (e) => {
+    if (e.target.tagName === 'INPUT' && e.target.type === 'range') {
+      const val = +e.target.value;
+      const id = e.target.id;
+      switch (id) {
+        case 'adjBrightness': adjBrightness = val; break;
+        case 'adjContrast': adjContrast = val; break;
+        case 'adjSaturation': adjSaturation = val; break;
+        case 'adjExposure': adjExposure = val; break;
+        case 'adjShadows': adjShadows = val; break;
+        case 'adjHighlights': adjHighlights = val; break;
+        case 'adjTemp': adjTemp = val; break;
+        case 'adjTint': adjTint = val; break;
+        case 'adjVibrance': adjVibrance = val; break;
+        case 'adjClarity': adjClarity = val; break;
+      }
+      renderFinal();
+    }
+  });
+} else {
+  console.error('Adjust toolbar not found for binding!');
+}
 
 // -------- Undo / Redo --------
 undoBtn?.addEventListener('click', () => {
