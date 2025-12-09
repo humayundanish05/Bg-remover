@@ -432,7 +432,7 @@ downloadBtn?.addEventListener('click', () => {
   a.download = `bg_removed_${Date.now()}.png`;
   a.click();
 });
-if (saveBtn) saveBtn.addEventListener('click', () => downloadBtn?.click());
+
 
 // ---------- Fullscreen before/after slider ----------
 let sliderDragging = false;
@@ -670,47 +670,10 @@ redoBtn?.addEventListener('click', () => {
 });
 
 // -------- Layers Toggle --------
-if (layersToggle) {
-  layersToggle.addEventListener('click', () => {
-    showBackgroundLayer = !showBackgroundLayer;
-    renderFinal();
-  });
-}
+
 
 // -------- Reset Editor --------
-if (resetBtn) {
-  resetBtn.addEventListener('click', async () => {
-    if (!originalImg) return;
 
-    canvasScale = 1;
-    canvasOffsetX = 0;
-    canvasOffsetY = 0;
-    rotation = 0;
-    isFlipped = false;
-
-    bgReplacement = null;
-    bgScale = 1;
-    bgOffsetX = 0;
-    bgOffsetY = 0;
-
-    adjBrightness = 0; adjContrast = 0; adjSaturation = 0;
-    adjExposure = 0; adjShadows = 0; adjHighlights = 0;
-    adjTemp = 0; adjTint = 0; adjVibrance = 0; adjClarity = 0;
-
-    // Reset inputs
-    document.querySelectorAll('.active-toolbar input[type="range"]').forEach(i => i.value = 0);
-
-    tintColor = null;
-
-    // Reset removedBG to original (undo BG removal)
-    removedBG = document.createElement('canvas');
-    removedBG.width = canvas.width; removedBG.height = canvas.height;
-    removedBG.getContext('2d').drawImage(originalImg, 0, 0);
-
-    renderFinal();
-    pushHistory('reset');
-  });
-}
 
 // =======================================
 // POINTER HANDLING (Crop / Brush / Pan)
