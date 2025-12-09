@@ -119,6 +119,8 @@ canvas {
   border-top: 1px solid #222;
   display: flex;
   flex-direction: column;
+  position: relative;
+  z-index: 100;
 }
 
 /* SUB TOOLBARS */
@@ -172,9 +174,20 @@ canvas {
   background: rgba(79, 124, 255, 0.1);
 }
 
-.active-toolbar .icon {
-  font-size: 20px;
+.active-toolbar .material-symbols-outlined {
+  font-size: 24px;
   margin-bottom: 4px;
+  color: #ccc;
+}
+
+.active-toolbar button:hover .material-symbols-outlined,
+.active-toolbar label:hover .material-symbols-outlined {
+  color: #fff;
+}
+
+.active-toolbar button.active-tool .material-symbols-outlined {
+  color: #4f7cff;
+  font-variation-settings: 'FILL' 1;
 }
 
 /* Range Inputs in toolbar */
@@ -206,13 +219,19 @@ canvas {
   transition: all 0.2s;
 }
 
-.nav-btn .icon {
-  font-size: 18px;
+.nav-btn .material-symbols-outlined {
+  font-size: 20px;
   margin-bottom: 2px;
+  transition: color 0.2s;
 }
 
 .nav-btn.active-cat {
   color: #4f7cff;
+}
+
+.nav-btn.active-cat .material-symbols-outlined {
+  color: #4f7cff;
+  font-variation-settings: 'FILL' 1;
 }
 
 .nav-divider {
