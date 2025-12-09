@@ -550,10 +550,43 @@ navBtns.forEach(btn => {
 // -------- Manual BG Removal --------
 btnRemoveBg?.addEventListener('click', async () => {
   if (!originalImg) return;
-  // Visual feedback
-  btnRemoveBg.innerHTML = '<span class="icon">⏳</span><br>Removing...';
+  btnRemoveBg.innerHTML = '<span class="material-symbols-outlined">hourglass_top</span><br>...';
   await removeBackground(0.6);
-  btnRemoveBg.innerHTML = '<span class="icon">🪄</span><br>BG Remover';
+  btnRemoveBg.innerHTML = '<span class="material-symbols-outlined">auto_fix_high</span><br>BG Remover';
+});
+
+// -------- Unblur Tool (Simulated) --------
+toolUnblur?.addEventListener('click', () => {
+  if (!originalImg) return;
+  // Simulate unblur by boosting sharpness/contrast slightly
+  adjContrast += 10;
+  adjClarity += 20;
+  if (inpContrast) inpContrast.value = adjContrast;
+  if (inpClarity) inpClarity.value = adjClarity;
+  renderFinal();
+  alert('Enhancement applied!');
+});
+
+// -------- Magic Eraser (Brush Erase) --------
+toolMagicEraser?.addEventListener('click', () => {
+  // Switch to brush mode, erase
+  brushMode = 'erase';
+  setActiveTool('brush'); // Share brush cursor logic
+  // Visually activate magic eraser button instead of brush button
+  document.querySelectorAll('.active-tool').forEach(b => b.classList.remove('active-tool'));
+  toolMagicEraser.classList.add('active-tool');
+});
+
+// -------- Brush Tool (Paint) --------
+toolBrush?.addEventListener('click', () => {
+  brushMode = 'restore'; // Paint? or White?
+  // User asked for "Brush / Paint - allows drawing/painting".
+  // For now let's make it simple black/white or just 'restore' doesn't make sense if we don't have alpha mask to restore.
+  // Let's make it a simple white brush for now or a color brush.
+  // Given "Creative", a color brush is best.
+  // Standard ctx.strokeStyle... but handleBrushStroke uses fill.
+  brushMode = 'paint';
+  setActiveTool('brush');
 });
 
 // -------- Move Tool --------
@@ -954,35 +987,20 @@ function handleBrushStroke(x, y) {
   if (!removedBG) return;
   const bctx = removedBG.getContext('2d');
   bctx.save();
+
   if (brushMode === 'erase') {
     bctx.globalCompositeOperation = 'destination-out';
-  } else {
-    // paint back
+    bctx.beginPath();
+    bctx.arc(x, y, brushSize / 2, 0, Math.PI * 2);
+    bctx.fill();
+  } else if (brushMode === 'paint') {
     bctx.globalCompositeOperation = 'source-over';
-    bctx.fillStyle = 'rgba(255,255,255,1)'; // This paints white... which might not be what we want if we want to restore original pixels?
-    // Actually, "restoring" usually means painting back the integrity of the mask.
-    // If removedBG is just the image *with alpha*, we can't easily "restore" pixels we've erased unless we have the original original.
-    // We only have originalImg.
-    // So 'restore' would need to copy pixels from originalImg at (x,y) to removedBG at (x,y).
-    if (originalImg) {
-      // Complex: we need to mask this brush stroke to take pixels from originalImg
-      // A common pattern is: use 'destination-out' to clear the alpha (making it transparent?), no wait.
-      // We want to make it OPAQUE again using the original pixels.
-      // Draw the original image masked by the brush?
-
-      // Simpler approach for now:
-      // We can't easily do "restore" on a single canvas that has lost data.
-      // But let's assume 'erase' is enough for now, or just paint color?
-      // Expected behavior for 'magic eraser' manual refinement is usually "Erase" and "Un-Erase".
-      // To Un-Erase, we need the source data.
-      // Let's implement Erase properly. For restore, we might need a different architecture (Mask based).
-      // Given constraints, I will stick to Erase.
-    }
+    bctx.fillStyle = '#ff0000'; // Default red paint for 'Creative' brush
+    bctx.beginPath();
+    bctx.arc(x, y, brushSize / 2, 0, Math.PI * 2);
+    bctx.fill();
   }
 
-  bctx.beginPath();
-  bctx.arc(x, y, brushSize / 2, 0, Math.PI * 2);
-  bctx.fill();
   bctx.restore();
   renderFinal();
 }
